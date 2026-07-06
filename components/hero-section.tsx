@@ -1,6 +1,6 @@
 "use client";
 
-import { joinWaitlist } from "@/app/actions/waitlist";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 
@@ -16,10 +16,53 @@ export function HeroSection() {
     setStatus("loading");
     setMessage("");
 
-    const result = await joinWaitlist(email);
+    const normalized = email.trim().toLowerCase();
 
-    setStatus(result.ok ? "success" : "error");
-    setMessage(result.message);
+    if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      setStatus("error");
+      setMessage("Enter a valid email address.");
+      return;
+    }
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+
+      const { error } = await supabase
+        .from("waitlist")
+        .insert({ email: normalized });
+
+      if (error) {
+        if (error.code === "23505") {
+          setStatus("success");
+          setMessage("You're already on the list.");
+          return;
+        }
+
+        if (error.code === "42P01") {
+          setStatus("error");
+          setMessage("Waitlist is not set up yet. Please try again soon.");
+          return;
+        }
+
+        if (error.code === "42501") {
+          setStatus("error");
+          setMessage("Waitlist permissions need to be configured.");
+          return;
+        }
+
+        console.error("Waitlist insert failed:", error);
+        setStatus("error");
+        setMessage("Something went wrong. Please try again.");
+        return;
+      }
+
+      setStatus("success");
+      setMessage("You're on the list!");
+    } catch (error) {
+      console.error("Waitlist error:", error);
+      setStatus("error");
+      setMessage("Unable to connect. Please try again.");
+    }
   }
 
   const isSuccess = status === "success";
@@ -52,9 +95,15 @@ export function HeroSection() {
           onSubmit={handleSubmit}
           className="mx-auto mt-12 flex w-full max-w-md flex-col gap-3 sm:max-w-lg sm:flex-row"
         >
+          <label htmlFor="waitlist-email" className="sr-only">
+            Email address
+          </label>
           <input
+            id="waitlist-email"
+            name="email"
             type="email"
             required
+            autoComplete="email"
             disabled={status === "loading" || isSuccess}
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -5,12 +5,12 @@ function getSupabaseUrl() {
   return url.replace(/\/rest\/v1\/?$/, "");
 }
 
-export function createSupabaseClient() {
+export function createBrowserSupabaseClient() {
   const url = getSupabaseUrl();
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing Supabase environment variables.");
+    throw new Error("Missing Supabase configuration.");
   }
 
   return createClient(url, key);
