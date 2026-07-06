@@ -1,6 +1,5 @@
 "use client";
 
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 
@@ -25,39 +24,19 @@ export function HeroSection() {
     }
 
     try {
-      const supabase = createBrowserSupabaseClient();
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalized }),
+      });
 
-      const { error } = await supabase
-        .from("waitlist")
-        .insert({ email: normalized });
+      const result = (await response.json()) as {
+        ok: boolean;
+        message: string;
+      };
 
-      if (error) {
-        if (error.code === "23505") {
-          setStatus("success");
-          setMessage("You're already on the list.");
-          return;
-        }
-
-        if (error.code === "42P01") {
-          setStatus("error");
-          setMessage("Waitlist is not set up yet. Please try again soon.");
-          return;
-        }
-
-        if (error.code === "42501") {
-          setStatus("error");
-          setMessage("Waitlist permissions need to be configured.");
-          return;
-        }
-
-        console.error("Waitlist insert failed:", error);
-        setStatus("error");
-        setMessage("Something went wrong. Please try again.");
-        return;
-      }
-
-      setStatus("success");
-      setMessage("You're on the list!");
+      setStatus(result.ok ? "success" : "error");
+      setMessage(result.message);
     } catch (error) {
       console.error("Waitlist error:", error);
       setStatus("error");
