@@ -1,16 +1,28 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { joinWaitlist } from "@/app/actions/waitlist";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 
 export function HeroSection() {
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "idle",
+  );
+  const [message, setMessage] = useState("");
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (email.trim()) setSubmitted(true);
+    setStatus("loading");
+    setMessage("");
+
+    const result = await joinWaitlist(email);
+
+    setStatus(result.ok ? "success" : "error");
+    setMessage(result.message);
   }
+
+  const isSuccess = status === "success";
 
   return (
     <section className="relative flex flex-col items-center px-6 pt-24 pb-20 text-center sm:pt-32 sm:pb-28 lg:pt-40 lg:pb-36">
@@ -43,21 +55,41 @@ export function HeroSection() {
           <input
             type="email"
             required
+            disabled={status === "loading" || isSuccess}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
-            className="h-12 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/80 px-4 text-sm text-white placeholder:text-zinc-600 transition-colors outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
+            className="h-12 flex-1 rounded-lg border border-zinc-800 bg-zinc-900/80 px-4 text-sm text-white placeholder:text-zinc-600 transition-colors outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 disabled:opacity-60"
           />
           <button
             type="submit"
-            className="group flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-zinc-950 transition-all hover:bg-zinc-100 active:scale-[0.98]"
+            disabled={status === "loading" || isSuccess}
+            className="group flex h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-6 text-sm font-semibold text-zinc-950 transition-all hover:bg-zinc-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {submitted ? "You're on the list" : "Request Early Access"}
-            {!submitted && (
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            {status === "loading" ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Submitting
+              </>
+            ) : isSuccess ? (
+              "You're on the list"
+            ) : (
+              <>
+                Request Early Access
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </>
             )}
           </button>
         </form>
+
+        {message && (
+          <p
+            className={`mt-4 text-sm ${status === "error" ? "text-red-400" : "text-emerald-400"}`}
+            role="status"
+          >
+            {message}
+          </p>
+        )}
       </div>
     </section>
   );
