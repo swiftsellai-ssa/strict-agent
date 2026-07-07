@@ -42,7 +42,9 @@ export async function POST(request: Request) {
 
   const supabase = createClient(url, key);
 
-  const { error } = await supabase.from("waitlist").insert({ email });
+  const { error } = await supabase
+    .from("waitlist")
+    .insert({ email }, { returning: "minimal" });
 
   if (error) {
     if (error.code === "23505") {
