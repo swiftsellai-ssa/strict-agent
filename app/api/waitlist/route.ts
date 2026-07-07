@@ -61,9 +61,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (error.code === "42501" || error.message.toLowerCase().includes("jwt")) {
+    if (error.code === "42501") {
       return NextResponse.json(
-        { ok: false, message: "Waitlist authentication failed." },
+        {
+          ok: false,
+          message:
+            "Waitlist permissions are not configured. Run supabase/waitlist.sql in Supabase.",
+        },
+        { status: 503 },
+      );
+    }
+
+    if (error.message.toLowerCase().includes("jwt")) {
+      return NextResponse.json(
+        { ok: false, message: "Invalid Supabase API key." },
         { status: 401 },
       );
     }
